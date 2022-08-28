@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Jumbotron, Container, Col, Form, Button, Card, CardColumns } from 'react-bootstrap';
+import { Alert, Jumbotron, Container, Col, Form, Button, Card, CardColumns } from 'react-bootstrap';
+import { useMutation } from '@apollo/client';
 
 import Auth from '../utils/auth';
-import { saveBook, searchGoogleBooks } from '../utils/API';
+import { SAVE_BOOK } from '../utils/mutations';
+
+import { searchGoogleBooks } from '../utils/API';
 import { saveBookIds, getSavedBookIds } from '../utils/localStorage';
 
 const SearchBooks = () => {
@@ -13,6 +16,8 @@ const SearchBooks = () => {
 
   // create state to hold saved bookId values
   const [ savedBookIds, setSavedBookIds ] = useState(getSavedBookIds());
+  const [ showAlert, setShowAlert ] = useState('');
+  const [ saveBook ] = useMutation(SAVE_BOOK);
 
   // set up useEffect hook to save `savedBookIds` list to localStorage on component unmount
   // learn more here: https://reactjs.org/docs/hooks-effect.html#effects-with-cleanup
@@ -48,6 +53,7 @@ const SearchBooks = () => {
       setSearchedBooks(bookData);
       setSearchInput('');
     } catch (err) {
+      setShowAlert('There was a problem trying to get books. Try again later.');
       console.error(err);
     }
   };
@@ -57,23 +63,18 @@ const SearchBooks = () => {
     // find the book in `searchedBooks` state by the matching id
     const bookToSave = searchedBooks.find((book) => book.bookId===bookId);
 
-    // get token
-    const token = Auth.loggedIn() ? Auth.getToken():null;
-
-    if (!token) {
-      return false;
-    }
-
     try {
-      const response = await saveBook(bookToSave, token);
+      const { errors } = await saveBook({ variables: bookToSave });
 
-      if (!response.ok) {
+      if (errors) {
         throw new Error('something went wrong!');
       }
 
       // if book successfully saves to user's account, save book id to state
       setSavedBookIds([ ...savedBookIds, bookToSave.bookId ]);
+
     } catch (err) {
+      setShowAlert('There was a problem trying to save the book.')
       console.error(err);
     }
   };
@@ -111,6 +112,7 @@ const SearchBooks = () => {
             ? `Viewing ${ searchedBooks.length } results:`
             :'Search for a book to begin' }
         </h2>
+        <Alert variant="danger" dismissible show={!!showAlert} onClose={ () => setShowAlert('') }>{ showAlert }</Alert>
         <CardColumns>
           { searchedBooks.map((book) => {
             return (
