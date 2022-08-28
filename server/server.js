@@ -5,7 +5,6 @@ const path = require('path');
 const { authMiddleware } = require('./utils/auth');
 const { resolvers, typeDefs } = require('./schemas');
 const db = require('./config/connection');
-const routes = require('./routes');
 
 const PORT = process.env.PORT || 3001;
 
@@ -27,7 +26,6 @@ if (process.env.NODE_ENV==='production') {
 const startApolloServer = async () => {
   await server.start();
   server.applyMiddleware({ app });
-  app.use(routes);
 
   db.once('open', () => {
     app.listen(PORT, () => {
